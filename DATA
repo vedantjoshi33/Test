@@ -35,8 +35,8 @@ public class RabbitMQJavaProducer {
         factory.setHost("mdo-rmq-app-devl.sdde.deere.com");
         factory.setPort(5672);
         factory.setVirtualHost("connector_test");
-        factory.setUsername("default_user_DTQ6vm8DI4rJxFboJX_");
-        factory.setPassword("8PHfD7yaQuVOUY_eadGGXicYuU_VIY6Z");
+        factory.setUsername("USER");
+        factory.setPassword("PASS");
 
         try (Connection connection = factory.newConnection();
              Channel channel = connection.createChannel()) {
