@@ -1,0 +1,21 @@
+To get the data sequentially, we can modify the code to create the JSONObject tagsObj outside the loop and modify its properties inside the loop. Here's the modified code:
+javaCopy codeJSONObject obj = null;
+JSONArray tagsArr = new JSONArray();
+JSONObject tagsObj = new JSONObject();
+
+for (int i = 0; i < msg_count; i++) {
+    obj = new JSONObject();
+
+    tagsObj.put("epc", String.valueOf(i));
+    tagsObj.put("logicalDevice", "DW_FF54_WEST");
+    tagsObj.put("baseLogicalDevice", "DW_FF54_WEST");
+    tagsObj.put("antenna", 8);
+    tagsObj.put("rssi", -72.5);
+    tagsObj.put("timeUTC", 17041);
+    tagsObj.put("coordinates", "41.599556,-90.549071");
+
+    tagsArr.appendElement(tagsObj);
+
+    obj.put("site", "DW01");
+    obj.put("tags", tagsArr);
+}
