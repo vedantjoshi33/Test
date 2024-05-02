@@ -1,1 +1,48 @@
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
 
+import java.time.Duration;
+import java.util.Collections;
+import java.util.Properties;
+
+public class KafkaConsumerExample {
+
+    public static void main(String[] args) {
+        // Configure Kafka consumer properties
+        Properties props = new Properties();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, "my-consumer-group");
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"); // Start from the beginning of the topic
+
+        // Create a Kafka consumer instance
+        KafkaConsumer<String, String> consumer = new KafkaConsumer<>(props);
+
+        // Subscribe to the topic "T1"
+        consumer.subscribe(Collections.singletonList("T1"));
+
+        try {
+            while (true) {
+                // Poll for records from Kafka
+                ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
+
+                // Process the records
+                for (ConsumerRecord<String, String> record : records) {
+                    // Consume the message
+                    processMessage(record.value());
+                }
+            }
+        } finally {
+            // Close the consumer
+            consumer.close();
+        }
+    }
+
+    private static void processMessage(String message) {
+        // Implement your message processing logic here
+        System.out.println("Received message: " + message);
+    }
+}
