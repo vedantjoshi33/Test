@@ -1,0 +1,102 @@
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.PartitionInfo;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Properties;
+
+public class RabbitMQProducerKafkaConsumer {
+
+    private static final String RABBITMQ_EXCHANGE_NAME = "rabbitmq_exchange";
+    private static final String RABBITMQ_ROUTING_KEY = "rabbitmq_routing_key";
+    private static final String KAFKA_TOPIC = "kafka_topic";
+    private static final String KAFKA_BOOTSTRAP_SERVERS = "localhost:9092";
+
+    public static void main(String[] args) throws IOException, InterruptedException {
+        // Send data to RabbitMQ
+        sendDataToRabbitMQ();
+
+        // Check available topics in Kafka
+        checkKafkaTopics();
+
+        // Receive messages from Kafka
+        consumeFromKafka();
+    }
+
+    private static void sendDataToRabbitMQ() throws IOException {
+        ConnectionFactory factory = new ConnectionFactory();
+        factory.setHost("mdo-rmq-app-devl.sdde.deere.com");
+        factory.setPort(5672);
+        factory.setVirtualHost("connector_test");
+        factory.setUsername("USER");
+        factory.setPassword("PASS");
+        try (Connection connection = factory.newConnection();
+             Channel channel = connection.createChannel()) {
+            channel.exchangeDeclare(RABBITMQ_EXCHANGE_NAME, "direct");
+
+            // Create the JSON message
+            String jsonMessage = "{" +
+                    "\"site\": \"DW01\"," +
+                    "\"tags\": [" +
+                    "{" +
+                    "\"epc\": 0," +
+                    "\"logicalDevice\": \"DW_FF54_WEST\"," +
+                    "\"baseLogicalDevice\": \"DW_FF54_WEST\"," +
+                    "\"antenna\": 8," +
+                    "\"rssi\": -72.5," +
+                    "\"timeUTC\": 1704101158709," +
+                    "\"coordinates\": \"41.599556,-90.549071\"" +
+                    "}" +
+                    "]" +
+                    "}";
+
+            channel.basicPublish(RABBITMQ_EXCHANGE_NAME, RABBITMQ_ROUTING_KEY, null, jsonMessage.getBytes());
+            System.out.println("Sent message to RabbitMQ: " + jsonMessage);
+        }
+    }
+
+    private static void checkKafkaTopics() {
+        Properties props = new Properties();
+        props.put("bootstrap.servers", KAFKA_BOOTSTRAP_SERVERS);
+        props.put("group.id", "kafka-topic-checker");
+        props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        props.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+
+        try (KafkaConsumer<String, String> consumer = new KafkaConsumer<>(props)) {
+            List<PartitionInfo> partitionInfos = consumer.partitionsFor(KAFKA_TOPIC);
+            if (partitionInfos != null && !partitionInfos.isEmpty()) {
+                System.out.println("Topic '" + KAFKA_TOPIC + "' exists in Kafka.");
+            } else {
+                System.out.println("Topic '" + KAFKA_TOPIC + "' does not exist in Kafka.");
+            }
+        } catch (Exception e) {
+            System.err.println("Error checking Kafka topics: " + e.getMessage());
+        }
+    }
+
+    private static void consumeFromKafka() {
+        Properties props = new Properties();
+        props.put("bootstrap.servers", KAFKA_BOOTSTRAP_SERVERS);
+        props.put("group.id", "rabbitmq-kafka-connector");
+        props.put("enable.auto.commit", "true");
+        props.put("auto.commit.interval.ms", "1000");
+        props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        props.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+
+        KafkaConsumer<String, String> consumer = new KafkaConsumer<>(props);
+        consumer.subscribe(Arrays.asList(KAFKA_TOPIC));
+
+        while (true) {
+            ConsumerRecords<String, String> records = consumer.poll(100);
+            for (ConsumerRecord<String, String> record : records) {
+                System.out.printf("Received message from Kafka: %s\n", record.value());
+            }
+        }
+    }
+}
