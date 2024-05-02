@@ -1,0 +1,81 @@
+package org.example;
+
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
+
+import com.rabbitmq.client.*;
+import lombok.extern.slf4j.Slf4j;
+import net.minidev.json.JSONArray;
+import net.minidev.json.JSONObject;
+
+import java.util.*;
+
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.MessageProperties;
+
+import java.util.Scanner;
+
+import com.rabbitmq.client.*;
+
+
+import java.io.IOException;
+import java.util.Scanner;
+import java.util.concurrent.TimeoutException;
+
+public class RabbitMQJavaProducer {
+
+    private static final String EXCHANGE_NAME = "amq.topic";
+    private static final String ROUTING_KEY = "Edge.test.#";
+
+    public static void main(String[] args) throws IOException, TimeoutException {
+        ConnectionFactory factory = new ConnectionFactory();
+        factory.setHost("mdo-rmq-app-devl.sdde.deere.com");
+        factory.setPort(5672);
+        factory.setVirtualHost("connector_test");
+        factory.setUsername("default_user_DTQ6vm8DI4rJxFboJX_");
+        factory.setPassword("8PHfD7yaQuVOUY_eadGGXicYuU_VIY6Z");
+
+        try (Connection connection = factory.newConnection();
+             Channel channel = connection.createChannel()) {
+
+            Scanner sc = new Scanner(System.in);
+            System.out.println("Total messages to send: ");
+            int msg_count = sc.nextInt();
+            int count = 0;
+
+            JSONObject obj = null;
+            for (int i = 0; i < msg_count; i++) {
+                obj = new JSONObject();
+
+                JSONArray tagsArr = new JSONArray();
+                JSONObject tagsObj = new JSONObject();
+                tagsObj.put("epc", String.valueOf(i));
+                tagsObj.put("logicalDevice", "DW_FF54_WEST");
+                tagsObj.put("baseLogicalDevice", "DW_FF54_WEST");
+                tagsObj.put("antenna", 8);
+                tagsObj.put("rssi", -72.5);
+                tagsObj.put("timeUTC", 17041);
+                tagsObj.put("coordinates", "41.599556,-90.549071");
+
+                tagsArr.appendElement(tagsObj);
+
+                obj.put("site", "DW01");
+                obj.put("tags", tagsArr);
+
+//                jsonObject.add(obj);
+            }
+
+            //JSONObject jsonMessage = new JSONObject(messageData);
+
+            String message = obj.toString();
+            channel.basicPublish(EXCHANGE_NAME, ROUTING_KEY, MessageProperties.PERSISTENT_TEXT_PLAIN, message.getBytes());
+            count++;
+            System.out.println(message);}
+        }
+
+      //      System.out.println("Sent " + " messages");
+        }
+    //}}
